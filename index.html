@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Braille ASCII Art</title>
+	<link rel="stylesheet" href="styles.css?v=3">
+</head>
+
+<body>
+	<div class="app-shell">
+		<header class="hero-card">
+			<div>
+				<h1>Braille ASCII Art</h1>
+				<p class="subtitle">Turn any image into crisp Braille-style ASCII with dither modes, mirror controls, and smart whitespace cleanup.</p>
+			</div>
+			<div class="hero-meta">
+				<a href="https://lach.la" target="_blank" rel="noreferrer">Lachlan</a>
+				<a href="https://github.com/LachlanArthur/Braille-ASCII-Art" target="_blank" rel="noreferrer">GitHub</a>
+			</div>
+		</header>
+
+		<main class="content-grid">
+			<section class="panel controls-panel">
+				<div class="panel-title-row">
+					<h2>Controls</h2>
+					<button id="copy" class="primary-btn">Copy ASCII</button>
+				</div>
+
+				<label class="field">
+					<span>Image</span>
+					<input type="file" id="filepicker" accept=".png,.jpeg,.jpg">
+				</label>
+
+				<label class="field">
+					<span>Dither Mode</span>
+					<select id="dither">
+						<option value="floydSteinberg">Floyd-Steinberg (simple)</option>
+						<option value="stucki">Stucki (edge contrast)</option>
+						<option value="atkinson">Atkinson (high contrast)</option>
+						<option value="threshold">Threshold (no dither)</option>
+					</select>
+				</label>
+
+				<label class="field slider-field">
+					<span>Threshold</span>
+					<input type="range" id="threshold" min="0" max="254" value="127">
+				</label>
+
+				<label class="field">
+					<span>Width</span>
+					<input type="number" id="width" value="100" step="10" min="10">
+				</label>
+
+				<label class="field checkbox-field">
+					<input type="checkbox" id="invert">
+					<span>Invert</span>
+				</label>
+
+				<label class="field checkbox-field">
+					<input type="checkbox" id="swap-dots">
+					<span>Swap dots & spaces</span>
+				</label>
+
+				<label class="field checkbox-field">
+					<input type="checkbox" id="compact-whitespace" checked>
+					<span>Clean whitespace</span>
+				</label>
+
+				<label class="field checkbox-field">
+					<input type="checkbox" id="mirror">
+					<span>Mirror (180°)</span>
+				</label>
+
+				<label class="field">
+					<span>Preview Font Size</span>
+					<input type="number" id="font-size" value="10" min="6" max="32">
+				</label>
+
+				<p class="stats"><span id="char-count">0</span> characters</p>
+			</section>
+
+			<section class="panel preview-panel">
+				<div class="panel-title-row">
+					<h2>Preview</h2>
+					<p class="hint">Tip: larger widths are slower, so keep them moderate for snappy feedback.</p>
+				</div>
+				<div id="output" contenteditable="true"></div>
+			</section>
+		</main>
+	</div>
+
+	<script src="dist/index.js?v=3" type="module"></script>
+
+</body>
+
+</html>
