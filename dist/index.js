@@ -1,7 +1,10 @@
 import { $, on, rgbaOffset } from './helpers.js';
 import KernelDitherer from './kernel-ditherer.js';
-// Braille symbol is 2x4 dots
-const asciiXDots = 2, asciiYDots = 4;
+import { buildBrailleRows } from './braille-render.js';
+
+const asciiXDots = 2;
+const asciiYDots = 4;
+
 const ditherers = {
     threshold: new KernelDitherer([0, 0], [], 1),
     floydSteinberg: new KernelDitherer([1, 0], [
@@ -19,103 +22,161 @@ const ditherers = {
         [0, 1, 0, 0],
     ], 8),
 };
-let dithererName = 'floydSteinberg', invert = false, threshold = 127, asciiWidth = 100, asciiHeight = 100;
+
+let dithererName = 'floydSteinberg';
+let invert = false;
+let swapDotsAndSpaces = false;
+let compactWhitespace = true;
+let mirror = false;
+let threshold = 127;
+let asciiWidth = 100;
+let asciiHeight = 100;
 let image;
 let canvas = document.createElement('canvas');
 let context = canvas.getContext('2d');
 let ascii = '';
-on(document, 'DOMContentLoaded', function (e) {
+let pendingRender = false;
+
+on(document, 'DOMContentLoaded', function () {
     on($('#filepicker'), 'change', async function () {
-        if (!this.files || !this.files.length)
-            return;
+        if (!this.files || !this.files.length) return;
+
         image = document.createElement('img');
         image.src = URL.createObjectURL(this.files[0].slice(0));
         await new Promise(resolve => on(image, 'load', resolve));
-        render();
+        queueRender();
     });
+
     on($('#dither'), 'change', function () {
-        let newValue = this.value;
-        if (newValue == dithererName)
-            return;
+        const newValue = this.value;
+        if (newValue === dithererName) return;
         dithererName = newValue;
-        render();
+        queueRender();
     });
+
     on($('#threshold'), 'change', function () {
-        let newValue = parseInt(this.value);
-        if (newValue == threshold)
-            return;
+        const newValue = parseInt(this.value, 10);
+        if (newValue === threshold) return;
         threshold = newValue;
-        render();
+        queueRender();
     });
+
     on($('#width'), 'input', function () {
-        let newValue = parseInt(this.value);
-        if (newValue == asciiWidth || newValue < 1)
-            return;
+        const newValue = parseInt(this.value, 10);
+        if (newValue === asciiWidth || newValue < 1) return;
         asciiWidth = newValue;
-        render();
+        queueRender();
     });
+
     on($('#invert'), 'change', function () {
         invert = this.checked;
         document.body.classList.toggle('invert', invert);
-        render();
+        queueRender();
     });
+
+    on($('#swap-dots'), 'change', function () {
+        swapDotsAndSpaces = this.checked;
+        queueRender();
+    });
+
+    on($('#compact-whitespace'), 'change', function () {
+        compactWhitespace = this.checked;
+        queueRender();
+    });
+
+    on($('#mirror'), 'change', function () {
+        mirror = this.checked;
+        queueRender();
+    });
+
     on($('#copy'), 'click', function () {
         navigator.clipboard.writeText(ascii);
         const oldText = this.textContent;
         this.textContent = 'Copied!';
         setTimeout(() => this.textContent = oldText, 1000);
     });
+
+    on($('#reset'), 'click', function () {
+        dithererName = 'floydSteinberg';
+        invert = false;
+        swapDotsAndSpaces = false;
+        compactWhitespace = true;
+        mirror = false;
+        threshold = 127;
+        asciiWidth = 100;
+
+        $('#dither').value = dithererName;
+        $('#threshold').value = threshold.toString();
+        $('#width').value = asciiWidth.toString();
+        $('#invert').checked = false;
+        $('#swap-dots').checked = false;
+        $('#compact-whitespace').checked = true;
+        $('#mirror').checked = false;
+        document.body.classList.toggle('invert', invert);
+        queueRender();
+    });
+
+    on($('#download'), 'click', function () {
+        const blob = new Blob([ascii], { type: 'text/plain;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'braille-ascii-art.txt';
+        link.click();
+        URL.revokeObjectURL(link.href);
+    });
+
     on($('#font-size'), 'input', function () {
         document.documentElement.style.setProperty('--font-size', `${this.value}px`);
     });
 });
+
+function queueRender() {
+    if (pendingRender) return;
+    pendingRender = true;
+    window.requestAnimationFrame(() => {
+        pendingRender = false;
+        render();
+    });
+}
+
 async function render() {
-    let asciiText = [];
-    let asciiHtml = [];
-    if (!image)
-        return;
+    if (!image) return;
+
     asciiHeight = Math.ceil(asciiWidth * asciiXDots * (image.height / image.width) / asciiYDots);
     document.documentElement.style.setProperty('--width', asciiWidth.toString());
     document.documentElement.style.setProperty('--height', asciiHeight.toString());
+
     canvas.width = asciiWidth * asciiXDots;
     canvas.height = asciiHeight * asciiYDots;
-    // Fill the canvas with white
+
     context.globalCompositeOperation = 'source-over';
     context.fillStyle = 'white';
     context.fillRect(0, 0, canvas.width, canvas.height);
-    // Draw the image as greyscale
+
     context.globalCompositeOperation = 'luminosity';
+    context.save();
+    if (mirror) {
+        context.translate(canvas.width / 2, canvas.height / 2);
+        context.rotate(Math.PI);
+        context.translate(-canvas.width / 2, -canvas.height / 2);
+    }
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    context.restore();
+
     const ditherer = ditherers[dithererName];
     const greyPixels = context.getImageData(0, 0, canvas.width, canvas.height);
     const ditheredPixels = ditherer.dither(greyPixels, threshold);
-    const targetValue = invert ? 255 : 0;
-    for (let y = 0; y < canvas.height; y += asciiYDots) {
-        const line = [];
-        for (let x = 0; x < canvas.width; x += asciiXDots) {
-            // Braille Unicode range starts at U2800 (= 10240 decimal)
-            // Each of the eight dots is mapped to a bit in a byte which
-            // determines its position in the range.
-            // https://en.wikipedia.org/wiki/Braille_Patterns
-            line.push(10240
-                + (+(ditheredPixels.data.at(rgbaOffset(x + 1, y + 3, canvas.width)) === targetValue) << 7)
-                + (+(ditheredPixels.data.at(rgbaOffset(x + 0, y + 3, canvas.width)) === targetValue) << 6)
-                + (+(ditheredPixels.data.at(rgbaOffset(x + 1, y + 2, canvas.width)) === targetValue) << 5)
-                + (+(ditheredPixels.data.at(rgbaOffset(x + 1, y + 1, canvas.width)) === targetValue) << 4)
-                + (+(ditheredPixels.data.at(rgbaOffset(x + 1, y + 0, canvas.width)) === targetValue) << 3)
-                + (+(ditheredPixels.data.at(rgbaOffset(x + 0, y + 2, canvas.width)) === targetValue) << 2)
-                + (+(ditheredPixels.data.at(rgbaOffset(x + 0, y + 1, canvas.width)) === targetValue) << 1)
-                + (+(ditheredPixels.data.at(rgbaOffset(x + 0, y + 0, canvas.width)) === targetValue) << 0));
-        }
-        const lineChars = String.fromCharCode.apply(String, line);
-        asciiText.push(lineChars);
-        asciiHtml.push(lineChars.split('').map(char => `<span>${char}</span>`).join(''));
-    }
-    ascii = asciiText.join('\n');
+    const asciiLines = buildBrailleRows(ditheredPixels, canvas.width, canvas.height, asciiXDots, asciiYDots, {
+        invert,
+        swapDotsAndSpaces,
+        compactWhitespace,
+    });
+
+    ascii = asciiLines.join('\n');
     $('#char-count').textContent = ascii.length.toLocaleString();
-    let output = $('#output');
+
+    const output = $('#output');
     output.style.display = 'block';
-    output.innerHTML = '';
-    output.insertAdjacentHTML('afterbegin', asciiHtml.join('<br>'));
+    output.innerHTML = asciiLines.map(line => line.split('').map(char => `<span>${char}</span>`).join('')).join('<br>');
 }
 //# sourceMappingURL=index.js.map

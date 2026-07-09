@@ -160,18 +160,36 @@ body.invert input[type="range"] {
 	margin: 0;
 }
 
-.primary-btn {
+.button-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.primary-btn,
+.secondary-btn {
 	border: none;
 	border-radius: 999px;
 	padding: 0.6rem 1rem;
-	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
-	color: white;
 	font-weight: 700;
 	cursor: pointer;
+	transition: transform 160ms ease;
+}
+
+.primary-btn {
+	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+	color: white;
 	box-shadow: 0 10px 20px rgba(76, 110, 245, 0.2);
 }
 
-.primary-btn:hover {
+.secondary-btn {
+	background: var(--panel);
+	color: var(--text);
+	border: 1px solid var(--border);
+}
+
+.primary-btn:hover,
+.secondary-btn:hover {
 	transform: translateY(-1px);
 }
 

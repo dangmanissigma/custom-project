@@ -119,6 +119,35 @@ on( document, 'DOMContentLoaded', function ( e ) {
 		setTimeout( () => this.textContent = oldText, 1000 );
 	} );
 
+	on( $<HTMLButtonElement>( '#reset' ), 'click', function () {
+		dithererName = 'floydSteinberg';
+		invert = false;
+		swapDotsAndSpaces = false;
+		compactWhitespace = true;
+		mirror = false;
+		threshold = 127;
+		asciiWidth = 100;
+
+		$( '#dither' )!.value = dithererName;
+		$( '#threshold' )!.value = threshold.toString();
+		$( '#width' )!.value = asciiWidth.toString();
+		$( '#invert' )!.checked = false;
+		$( '#swap-dots' )!.checked = false;
+		$( '#compact-whitespace' )!.checked = true;
+		$( '#mirror' )!.checked = false;
+		document.body.classList.toggle( 'invert', invert );
+		queueRender();
+	} );
+
+	on( $<HTMLButtonElement>( '#download' ), 'click', function () {
+		const blob = new Blob( [ ascii ], { type: 'text/plain;charset=utf-8' } );
+		const link = document.createElement( 'a' );
+		link.href = URL.createObjectURL( blob );
+		link.download = 'braille-ascii-art.txt';
+		link.click();
+		URL.revokeObjectURL( link.href );
+	} );
+
 	on( $<HTMLInputElement>( '#font-size' ), 'input', function () {
 		document.documentElement.style.setProperty( '--font-size', `${this.value}px` );
 	} );
