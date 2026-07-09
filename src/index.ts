@@ -199,7 +199,8 @@ async function render() {
 
 	ascii = asciiLines.join( '\n' );
 
-	$( '#char-count' )!.textContent = ascii.length.toLocaleString();
+	const visibleCharacterCount = ascii.replace( /\u2800/g, '' ).replace( /\n/g, '' ).length;
+	$( '#char-count' )!.textContent = visibleCharacterCount.toLocaleString();
 
 	const output = $( '#output' )!;
 	output.style.display = 'block';

@@ -1,5 +1,6 @@
 import { $, on, rgbaOffset } from './helpers.js';
 import KernelDitherer from './kernel-ditherer.js';
+import OrderedDitherer from './ordered-ditherer.js';
 import { buildBrailleRows } from './braille-render.js';
 
 const asciiXDots = 2;
@@ -21,6 +22,7 @@ const ditherers = {
         [1, 1, 1, 0],
         [0, 1, 0, 0],
     ], 8),
+    ordered: new OrderedDitherer(),
 };
 
 let dithererName = 'floydSteinberg';
@@ -156,9 +158,8 @@ async function render() {
     context.globalCompositeOperation = 'luminosity';
     context.save();
     if (mirror) {
-        context.translate(canvas.width / 2, canvas.height / 2);
-        context.rotate(Math.PI);
-        context.translate(-canvas.width / 2, -canvas.height / 2);
+        context.translate(canvas.width, 0);
+        context.scale(-1, 1);
     }
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
     context.restore();
@@ -173,7 +174,8 @@ async function render() {
     });
 
     ascii = asciiLines.join('\n');
-    $('#char-count').textContent = ascii.length.toLocaleString();
+    const visibleCharacterCount = ascii.replace(/\u2800/g, '').replace(/\n/g, '').length;
+    $('#char-count').textContent = visibleCharacterCount.toLocaleString();
 
     const output = $('#output');
     output.style.display = 'block';
