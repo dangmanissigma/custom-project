@@ -1,12 +1,13 @@
 import { $, on, rgbaOffset } from './helpers.js';
 import KernelDitherer from './kernel-ditherer.js';
+import OrderedDitherer from './ordered-ditherer.js';
 import { buildBrailleRows } from './braille-render.js';
 
 // Braille symbol is 2x4 dots
 const asciiXDots = 2,
 	asciiYDots = 4;
 
-type DithererName = 'threshold' | 'floydSteinberg' | 'stucki' | 'atkinson';
+type DithererName = 'threshold' | 'floydSteinberg' | 'stucki' | 'atkinson' | 'ordered';
 
 const ditherers: Record<DithererName, Ditherer> = {
 	threshold: new KernelDitherer(
@@ -40,6 +41,7 @@ const ditherers: Record<DithererName, Ditherer> = {
 		],
 		8,
 	),
+	ordered: new OrderedDitherer(),
 };
 
 let dithererName: DithererName = 'floydSteinberg',
@@ -180,9 +182,8 @@ async function render() {
 	context.globalCompositeOperation = 'luminosity';
 	context.save();
 	if ( mirror ) {
-		context.translate( canvas.width / 2, canvas.height / 2 );
-		context.rotate( Math.PI );
-		context.translate( -canvas.width / 2, -canvas.height / 2 );
+		context.translate( canvas.width, 0 );
+		context.scale( -1, 1 );
 	}
 	context.drawImage( image, 0, 0, canvas.width, canvas.height );
 	context.restore();
