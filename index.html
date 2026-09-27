@@ -5,7 +5,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta http-equiv="X-UA-Compatible" content="ie=edge">
-	<title>Braille ASCII Art</title>
+		<title>ASCII Image Art</title>
 	<link rel="stylesheet" href="styles.css?v=3">
 </head>
 
@@ -13,8 +13,8 @@
 	<div class="app-shell">
 		<header class="hero-card">
 			<div>
-				<h1>Braille ASCII Art</h1>
-				<p class="subtitle">Turn any image into crisp Braille-style ASCII with dither modes, mirror controls, and smart whitespace cleanup.</p>
+					<h1>ASCII Image Art</h1>
+					<p class="subtitle">Turn images into shaded ASCII, Braille, and block-character art.</p>
 			</div>
 			<div class="hero-meta">
 				<a href="https://lach.la" target="_blank" rel="noreferrer">Lachlan</a>
@@ -39,6 +39,38 @@
 				</label>
 
 				<label class="field">
+					<span>Render Mode</span>
+					<select id="render-mode">
+						<option value="ascii">Grayscale ASCII</option>
+						<option value="braille">Braille</option>
+						<option value="halfBlock">Half Block</option>
+						<option value="shadeBlocks">Shade Blocks</option>
+					</select>
+				</label>
+
+				<label class="field" id="character-set-field">
+					<span>Character Set</span>
+					<select id="character-set">
+						<option value="classic">Classic</option>
+						<option value="detailed" selected>Detailed</option>
+						<option value="punctuation">Punctuation</option>
+						<option value="dense">Dense</option>
+						<option value="cyber">Cyber</option>
+						<option value="custom">Custom</option>
+					</select>
+				</label>
+
+				<label class="field" id="characters-field">
+					<span>Density Characters (light to dark)</span>
+					<input type="text" id="characters" value=" .'-_,~:;=!*?+%#@" spellcheck="false">
+				</label>
+
+				<label class="field slider-field">
+					<span>Character Aspect Ratio</span>
+					<input type="range" id="aspect-ratio" min="0.35" max="1" value="0.5" step="0.01">
+				</label>
+
+				<label class="field" id="dither-field">
 					<span>Dither Mode</span>
 					<select id="dither">
 						<option value="floydSteinberg">Floyd-Steinberg (simple)</option>
@@ -49,7 +81,7 @@
 					</select>
 				</label>
 
-				<label class="field slider-field">
+				<label class="field slider-field" id="threshold-field">
 					<span>Threshold</span>
 					<input type="range" id="threshold" min="0" max="254" value="127">
 				</label>
@@ -59,7 +91,7 @@
 					<input type="number" id="width" value="100" step="10" min="10">
 				</label>
 
-				<label class="field checkbox-field">
+				<label class="field checkbox-field" id="swap-dots-field">
 					<input type="checkbox" id="invert">
 					<span>Invert</span>
 				</label>

@@ -2,12 +2,23 @@ import { $, on, rgbaOffset } from './helpers.js';
 import KernelDitherer from './kernel-ditherer.js';
 import OrderedDitherer from './ordered-ditherer.js';
 import { buildBrailleRows } from './braille-render.js';
+import { buildGrayscaleRows, buildHalfBlockRows } from './grayscale-render.js';
 
 // Braille symbol is 2x4 dots
 const asciiXDots = 2,
 	asciiYDots = 4;
 
 type DithererName = 'threshold' | 'floydSteinberg' | 'stucki' | 'atkinson' | 'ordered';
+type RenderMode = 'ascii' | 'braille' | 'halfBlock' | 'shadeBlocks';
+type CharacterSet = 'classic' | 'detailed' | 'punctuation' | 'dense' | 'cyber' | 'custom';
+
+const characterSets: Record<Exclude<CharacterSet, 'custom'>, string> = {
+	classic: ' .:-=+*#%@',
+	detailed: " .'-_,~:;=!*?+%#@",
+	punctuation: ' .,:;!?-_+=*/\\|()[]{}#@',
+	dense: ' .:-=+*#%@&',
+	cyber: ' .-+*%@#$X01',
+};
 
 const ditherers: Record<DithererName, Ditherer> = {
 	threshold: new KernelDitherer(
@@ -44,7 +55,11 @@ const ditherers: Record<DithererName, Ditherer> = {
 	ordered: new OrderedDitherer(),
 };
 
-let dithererName: DithererName = 'floydSteinberg',
+let renderMode: RenderMode = 'ascii',
+	characterSet: CharacterSet = 'detailed',
+	characters = characterSets.detailed,
+	aspectRatio = 0.5,
+	dithererName: DithererName = 'floydSteinberg',
 	invert = false,
 	swapDotsAndSpaces = false,
 	compactWhitespace = true,
@@ -76,6 +91,35 @@ on( document, 'DOMContentLoaded', function ( e ) {
 		let newValue = this.value as DithererName;
 		if ( newValue == dithererName ) return;
 		dithererName = newValue;
+		queueRender();
+	} );
+
+	on( $<HTMLSelectElement>( '#render-mode' ), 'change', function () {
+		renderMode = this.value as RenderMode;
+		updateModeControls();
+		queueRender();
+	} );
+
+	on( $<HTMLSelectElement>( '#character-set' ), 'change', function () {
+		characterSet = this.value as CharacterSet;
+		if ( characterSet !== 'custom' ) {
+			characters = characterSets[ characterSet ];
+			$<HTMLInputElement>( '#characters' )!.value = characters;
+		} else {
+			characters = $<HTMLInputElement>( '#characters' )!.value;
+		}
+		queueRender();
+	} );
+
+	on( $<HTMLInputElement>( '#characters' ), 'input', function () {
+		characters = this.value;
+		$<HTMLSelectElement>( '#character-set' )!.value = 'custom';
+		characterSet = 'custom';
+		queueRender();
+	} );
+
+	on( $<HTMLInputElement>( '#aspect-ratio' ), 'input', function () {
+		aspectRatio = parseFloat( this.value );
 		queueRender();
 	} );
 
@@ -122,6 +166,10 @@ on( document, 'DOMContentLoaded', function ( e ) {
 	} );
 
 	on( $<HTMLButtonElement>( '#reset' ), 'click', function () {
+		renderMode = 'ascii';
+		characterSet = 'detailed';
+		characters = characterSets.detailed;
+		aspectRatio = 0.5;
 		dithererName = 'floydSteinberg';
 		invert = false;
 		swapDotsAndSpaces = false;
@@ -130,14 +178,19 @@ on( document, 'DOMContentLoaded', function ( e ) {
 		threshold = 127;
 		asciiWidth = 100;
 
-		$( '#dither' )!.value = dithererName;
-		$( '#threshold' )!.value = threshold.toString();
-		$( '#width' )!.value = asciiWidth.toString();
-		$( '#invert' )!.checked = false;
-		$( '#swap-dots' )!.checked = false;
-		$( '#compact-whitespace' )!.checked = true;
-		$( '#mirror' )!.checked = false;
+		$<HTMLSelectElement>( '#render-mode' )!.value = renderMode;
+		$<HTMLSelectElement>( '#character-set' )!.value = characterSet;
+		$<HTMLInputElement>( '#characters' )!.value = characters;
+		$<HTMLInputElement>( '#aspect-ratio' )!.value = aspectRatio.toString();
+		$<HTMLSelectElement>( '#dither' )!.value = dithererName;
+		$<HTMLInputElement>( '#threshold' )!.value = threshold.toString();
+		$<HTMLInputElement>( '#width' )!.value = asciiWidth.toString();
+		$<HTMLInputElement>( '#invert' )!.checked = false;
+		$<HTMLInputElement>( '#swap-dots' )!.checked = false;
+		$<HTMLInputElement>( '#compact-whitespace' )!.checked = true;
+		$<HTMLInputElement>( '#mirror' )!.checked = false;
 		document.body.classList.toggle( 'invert', invert );
+		updateModeControls();
 		queueRender();
 	} );
 
@@ -145,7 +198,7 @@ on( document, 'DOMContentLoaded', function ( e ) {
 		const blob = new Blob( [ ascii ], { type: 'text/plain;charset=utf-8' } );
 		const link = document.createElement( 'a' );
 		link.href = URL.createObjectURL( blob );
-		link.download = 'braille-ascii-art.txt';
+		link.download = 'image-ascii-art.txt';
 		link.click();
 		URL.revokeObjectURL( link.href );
 	} );
@@ -153,6 +206,8 @@ on( document, 'DOMContentLoaded', function ( e ) {
 	on( $<HTMLInputElement>( '#font-size' ), 'input', function () {
 		document.documentElement.style.setProperty( '--font-size', `${this.value}px` );
 	} );
+
+	updateModeControls();
 
 } );
 
@@ -165,15 +220,25 @@ function queueRender() {
 	} );
 }
 
+function updateModeControls() {
+	const isBraille = renderMode === 'braille';
+	const isAscii = renderMode === 'ascii';
+	$( '#dither-field' )!.toggleAttribute( 'hidden', !isBraille );
+	$( '#threshold-field' )!.toggleAttribute( 'hidden', !isBraille );
+	$( '#swap-dots-field' )!.toggleAttribute( 'hidden', !isBraille );
+	$( '#character-set-field' )!.toggleAttribute( 'hidden', !isAscii );
+	$( '#characters-field' )!.toggleAttribute( 'hidden', !isAscii );
+}
+
 async function render() {
 	if ( !image ) return;
 
-	asciiHeight = Math.ceil( asciiWidth * asciiXDots * ( image.height / image.width ) / asciiYDots );
+	asciiHeight = Math.ceil( asciiWidth * ( image.height / image.width ) * aspectRatio );
 	document.documentElement.style.setProperty( '--width', asciiWidth.toString() );
 	document.documentElement.style.setProperty( '--height', asciiHeight.toString() );
 
-	canvas.width = asciiWidth * asciiXDots;
-	canvas.height = asciiHeight * asciiYDots;
+	canvas.width = renderMode === 'braille' ? asciiWidth * asciiXDots : asciiWidth;
+	canvas.height = asciiHeight * ( renderMode === 'braille' ? asciiYDots : renderMode === 'halfBlock' ? 2 : 1 );
 
 	context.globalCompositeOperation = 'source-over';
 	context.fillStyle = 'white';
@@ -188,22 +253,37 @@ async function render() {
 	context.drawImage( image, 0, 0, canvas.width, canvas.height );
 	context.restore();
 
-	const ditherer = ditherers[ dithererName ];
 	const greyPixels = context.getImageData( 0, 0, canvas.width, canvas.height );
-	const ditheredPixels = ditherer.dither( greyPixels, threshold );
-	const asciiLines = buildBrailleRows( ditheredPixels, canvas.width, canvas.height, asciiXDots, asciiYDots, {
-		invert,
-		swapDotsAndSpaces,
-		compactWhitespace,
-	} );
+	let asciiLines: string[];
+	if ( renderMode === 'braille' ) {
+		const ditheredPixels = ditherers[ dithererName ].dither( greyPixels, threshold );
+		asciiLines = buildBrailleRows( ditheredPixels, canvas.width, canvas.height, asciiXDots, asciiYDots, {
+			invert,
+			swapDotsAndSpaces,
+			compactWhitespace,
+		} );
+	} else if ( renderMode === 'halfBlock' ) {
+		asciiLines = buildHalfBlockRows( greyPixels, canvas.width, canvas.height, invert, compactWhitespace );
+	} else {
+		const palette = renderMode === 'shadeBlocks' ? ' ░▒▓█' : characters;
+		asciiLines = buildGrayscaleRows( greyPixels, canvas.width, canvas.height, palette, invert, compactWhitespace );
+	}
 
 	ascii = asciiLines.join( '\n' );
 
-	const visibleCharacterCount = ascii.replace( /\u2800/g, '' ).replace( /\n/g, '' ).length;
+	const visibleCharacterCount = ascii.replace( /[\s\u2800]/g, '' ).length;
 	$( '#char-count' )!.textContent = visibleCharacterCount.toLocaleString();
 
 	const output = $( '#output' )!;
 	output.style.display = 'block';
-	const html = asciiLines.map( line => line.split( '' ).map( char => `<span>${char}</span>` ).join( '' ) ).join( '<br>' );
-	output.innerHTML = html;
+	const content = document.createDocumentFragment();
+	asciiLines.forEach( ( line, rowIndex ) => {
+		for ( const character of line ) {
+			const span = document.createElement( 'span' );
+			span.textContent = character;
+			content.append( span );
+		}
+		if ( rowIndex < asciiLines.length - 1 ) content.append( document.createElement( 'br' ) );
+	} );
+	output.replaceChildren( content );
 }

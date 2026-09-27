@@ -1,4 +1,5 @@
 export default class OrderedDitherer {
+    matrixSize;
     constructor(matrixSize = 8) {
         this.matrixSize = matrixSize;
     }

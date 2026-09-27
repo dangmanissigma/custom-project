@@ -1,3 +1,4 @@
+import { rgbaOffset } from './helpers.js';
 const BRAILLE_BASE = 0x2800;
 function getTargetValue(invert, swapDotsAndSpaces) {
     const baseTargetValue = invert ? 255 : 0;
@@ -17,7 +18,7 @@ function getBrailleBits(pixels, width, x, y, targetValue) {
     let bits = 0;
     for (let index = 0; index < dotOffsets.length; index++) {
         const [offsetX, offsetY] = dotOffsets[index];
-        const pixelValue = pixels.data.at(width * 4 * (y + offsetY) + 4 * (x + offsetX));
+        const pixelValue = pixels.data.at(rgbaOffset(x + offsetX, y + offsetY, width));
         if (typeof pixelValue === 'number' && pixelValue === targetValue) {
             bits |= 1 << (7 - index);
         }

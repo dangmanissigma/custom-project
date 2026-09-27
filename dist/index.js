@@ -1,11 +1,17 @@
-import { $, on, rgbaOffset } from './helpers.js';
+import { $, on } from './helpers.js';
 import KernelDitherer from './kernel-ditherer.js';
 import OrderedDitherer from './ordered-ditherer.js';
 import { buildBrailleRows } from './braille-render.js';
-
-const asciiXDots = 2;
-const asciiYDots = 4;
-
+import { buildGrayscaleRows, buildHalfBlockRows } from './grayscale-render.js';
+// Braille symbol is 2x4 dots
+const asciiXDots = 2, asciiYDots = 4;
+const characterSets = {
+    classic: ' .:-=+*#%@',
+    detailed: " .'-_,~:;=!*?+%#@",
+    punctuation: ' .,:;!?-_+=*/\\|()[]{}#@',
+    dense: ' .:-=+*#%@&',
+    cyber: ' .-+*%@#$X01',
+};
 const ditherers = {
     threshold: new KernelDitherer([0, 0], [], 1),
     floydSteinberg: new KernelDitherer([1, 0], [
@@ -24,81 +30,97 @@ const ditherers = {
     ], 8),
     ordered: new OrderedDitherer(),
 };
-
-let dithererName = 'floydSteinberg';
-let invert = false;
-let swapDotsAndSpaces = false;
-let compactWhitespace = true;
-let mirror = false;
-let threshold = 127;
-let asciiWidth = 100;
-let asciiHeight = 100;
+let renderMode = 'ascii', characterSet = 'detailed', characters = characterSets.detailed, aspectRatio = 0.5, dithererName = 'floydSteinberg', invert = false, swapDotsAndSpaces = false, compactWhitespace = true, mirror = false, threshold = 127, asciiWidth = 100, asciiHeight = 100;
 let image;
 let canvas = document.createElement('canvas');
 let context = canvas.getContext('2d');
 let ascii = '';
+let renderFrame = 0;
 let pendingRender = false;
-
-on(document, 'DOMContentLoaded', function () {
+on(document, 'DOMContentLoaded', function (e) {
     on($('#filepicker'), 'change', async function () {
-        if (!this.files || !this.files.length) return;
-
+        if (!this.files || !this.files.length)
+            return;
         image = document.createElement('img');
         image.src = URL.createObjectURL(this.files[0].slice(0));
         await new Promise(resolve => on(image, 'load', resolve));
-        queueRender();
+        render();
     });
-
     on($('#dither'), 'change', function () {
-        const newValue = this.value;
-        if (newValue === dithererName) return;
+        let newValue = this.value;
+        if (newValue == dithererName)
+            return;
         dithererName = newValue;
         queueRender();
     });
-
+    on($('#render-mode'), 'change', function () {
+        renderMode = this.value;
+        updateModeControls();
+        queueRender();
+    });
+    on($('#character-set'), 'change', function () {
+        characterSet = this.value;
+        if (characterSet !== 'custom') {
+            characters = characterSets[characterSet];
+            $('#characters').value = characters;
+        }
+        else {
+            characters = $('#characters').value;
+        }
+        queueRender();
+    });
+    on($('#characters'), 'input', function () {
+        characters = this.value;
+        $('#character-set').value = 'custom';
+        characterSet = 'custom';
+        queueRender();
+    });
+    on($('#aspect-ratio'), 'input', function () {
+        aspectRatio = parseFloat(this.value);
+        queueRender();
+    });
     on($('#threshold'), 'change', function () {
-        const newValue = parseInt(this.value, 10);
-        if (newValue === threshold) return;
+        let newValue = parseInt(this.value);
+        if (newValue == threshold)
+            return;
         threshold = newValue;
         queueRender();
     });
-
     on($('#width'), 'input', function () {
-        const newValue = parseInt(this.value, 10);
-        if (newValue === asciiWidth || newValue < 1) return;
+        let newValue = parseInt(this.value);
+        if (newValue == asciiWidth || newValue < 1)
+            return;
         asciiWidth = newValue;
         queueRender();
     });
-
     on($('#invert'), 'change', function () {
         invert = this.checked;
         document.body.classList.toggle('invert', invert);
         queueRender();
     });
-
     on($('#swap-dots'), 'change', function () {
         swapDotsAndSpaces = this.checked;
         queueRender();
     });
-
     on($('#compact-whitespace'), 'change', function () {
         compactWhitespace = this.checked;
         queueRender();
     });
-
     on($('#mirror'), 'change', function () {
         mirror = this.checked;
         queueRender();
     });
-
     on($('#copy'), 'click', function () {
         navigator.clipboard.writeText(ascii);
         const oldText = this.textContent;
         this.textContent = 'Copied!';
         setTimeout(() => this.textContent = oldText, 1000);
     });
-
     on($('#reset'), 'click', function () {
+        renderMode = 'ascii';
+        characterSet = 'detailed';
+        characters = characterSets.detailed;
+        aspectRatio = 0.5;
         dithererName = 'floydSteinberg';
         invert = false;
         swapDotsAndSpaces = false;
@@ -106,7 +128,10 @@ on(document, 'DOMContentLoaded', function () {
         mirror = false;
         threshold = 127;
         asciiWidth = 100;
-
+        $('#render-mode').value = renderMode;
+        $('#character-set').value = characterSet;
+        $('#characters').value = characters;
+        $('#aspect-ratio').value = aspectRatio.toString();
         $('#dither').value = dithererName;
         $('#threshold').value = threshold.toString();
         $('#width').value = asciiWidth.toString();
@@ -115,46 +140,51 @@ on(document, 'DOMContentLoaded', function () {
         $('#compact-whitespace').checked = true;
         $('#mirror').checked = false;
         document.body.classList.toggle('invert', invert);
+        updateModeControls();
         queueRender();
     });
-
     on($('#download'), 'click', function () {
         const blob = new Blob([ascii], { type: 'text/plain;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = 'braille-ascii-art.txt';
+        link.download = 'image-ascii-art.txt';
         link.click();
         URL.revokeObjectURL(link.href);
     });
-
     on($('#font-size'), 'input', function () {
         document.documentElement.style.setProperty('--font-size', `${this.value}px`);
     });
+    updateModeControls();
 });
-
 function queueRender() {
-    if (pendingRender) return;
+    if (pendingRender)
+        return;
     pendingRender = true;
-    window.requestAnimationFrame(() => {
+    renderFrame = window.requestAnimationFrame(() => {
         pendingRender = false;
         render();
     });
 }
-
+function updateModeControls() {
+    const isBraille = renderMode === 'braille';
+    const isAscii = renderMode === 'ascii';
+    $('#dither-field').toggleAttribute('hidden', !isBraille);
+    $('#threshold-field').toggleAttribute('hidden', !isBraille);
+    $('#swap-dots-field').toggleAttribute('hidden', !isBraille);
+    $('#character-set-field').toggleAttribute('hidden', !isAscii);
+    $('#characters-field').toggleAttribute('hidden', !isAscii);
+}
 async function render() {
-    if (!image) return;
-
-    asciiHeight = Math.ceil(asciiWidth * asciiXDots * (image.height / image.width) / asciiYDots);
+    if (!image)
+        return;
+    asciiHeight = Math.ceil(asciiWidth * (image.height / image.width) * aspectRatio);
     document.documentElement.style.setProperty('--width', asciiWidth.toString());
     document.documentElement.style.setProperty('--height', asciiHeight.toString());
-
-    canvas.width = asciiWidth * asciiXDots;
-    canvas.height = asciiHeight * asciiYDots;
-
+    canvas.width = renderMode === 'braille' ? asciiWidth * asciiXDots : asciiWidth;
+    canvas.height = asciiHeight * (renderMode === 'braille' ? asciiYDots : renderMode === 'halfBlock' ? 2 : 1);
     context.globalCompositeOperation = 'source-over';
     context.fillStyle = 'white';
     context.fillRect(0, 0, canvas.width, canvas.height);
-
     context.globalCompositeOperation = 'luminosity';
     context.save();
     if (mirror) {
@@ -163,22 +193,38 @@ async function render() {
     }
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
     context.restore();
-
-    const ditherer = ditherers[dithererName];
     const greyPixels = context.getImageData(0, 0, canvas.width, canvas.height);
-    const ditheredPixels = ditherer.dither(greyPixels, threshold);
-    const asciiLines = buildBrailleRows(ditheredPixels, canvas.width, canvas.height, asciiXDots, asciiYDots, {
-        invert,
-        swapDotsAndSpaces,
-        compactWhitespace,
-    });
-
+    let asciiLines;
+    if (renderMode === 'braille') {
+        const ditheredPixels = ditherers[dithererName].dither(greyPixels, threshold);
+        asciiLines = buildBrailleRows(ditheredPixels, canvas.width, canvas.height, asciiXDots, asciiYDots, {
+            invert,
+            swapDotsAndSpaces,
+            compactWhitespace,
+        });
+    }
+    else if (renderMode === 'halfBlock') {
+        asciiLines = buildHalfBlockRows(greyPixels, canvas.width, canvas.height, invert, compactWhitespace);
+    }
+    else {
+        const palette = renderMode === 'shadeBlocks' ? ' ░▒▓█' : characters;
+        asciiLines = buildGrayscaleRows(greyPixels, canvas.width, canvas.height, palette, invert, compactWhitespace);
+    }
     ascii = asciiLines.join('\n');
-    const visibleCharacterCount = ascii.replace(/\u2800/g, '').replace(/\n/g, '').length;
+    const visibleCharacterCount = ascii.replace(/[\s\u2800]/g, '').length;
     $('#char-count').textContent = visibleCharacterCount.toLocaleString();
-
     const output = $('#output');
     output.style.display = 'block';
-    output.innerHTML = asciiLines.map(line => line.split('').map(char => `<span>${char}</span>`).join('')).join('<br>');
+    const content = document.createDocumentFragment();
+    asciiLines.forEach((line, rowIndex) => {
+        for (const character of line) {
+            const span = document.createElement('span');
+            span.textContent = character;
+            content.append(span);
+        }
+        if (rowIndex < asciiLines.length - 1)
+            content.append(document.createElement('br'));
+    });
+    output.replaceChildren(content);
 }
 //# sourceMappingURL=index.js.map
