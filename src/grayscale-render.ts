@@ -9,7 +9,11 @@ function trimRows( rows: string[] ) {
 
 function getLuminance( pixels: ImageData, width: number, x: number, y: number, invert: boolean ) {
 	const offset = rgbaOffset( x, y, width );
-	const value = 0.2126 * pixels.data[ offset ] + 0.7152 * pixels.data[ offset + 1 ] + 0.0722 * pixels.data[ offset + 2 ];
+	const alpha = pixels.data[ offset + 3 ] / 255;
+	const red = pixels.data[ offset ] * alpha + 255 * ( 1 - alpha );
+	const green = pixels.data[ offset + 1 ] * alpha + 255 * ( 1 - alpha );
+	const blue = pixels.data[ offset + 2 ] * alpha + 255 * ( 1 - alpha );
+	const value = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
 	return invert ? 255 - value : value;
 }
 
@@ -36,8 +40,8 @@ export function buildHalfBlockRows( pixels: ImageData, width: number, height: nu
 	for ( let y = 0; y < height; y += 2 ) {
 		let row = '';
 		for ( let x = 0; x < width; x++ ) {
-			const top = getLuminance( pixels, width, x, y, invert ) >= 128;
-			const bottom = y + 1 < height && getLuminance( pixels, width, x, y + 1, invert ) >= 128;
+			const top = getLuminance( pixels, width, x, y, invert ) < 128;
+			const bottom = y + 1 < height && getLuminance( pixels, width, x, y + 1, invert ) < 128;
 			row += top ? ( bottom ? '█' : '▀' ) : ( bottom ? '▄' : ' ' );
 		}
 		rows.push( row );

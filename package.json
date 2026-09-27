@@ -6,11 +6,14 @@
   "author": "LachlanArthur <lachlanarthur@gmail.com>",
   "license": "MIT",
   "private": true,
+  "type": "module",
   "scripts": {
-    "serve": "http-server -a localhost -p 80",
-    "build": "tsc",
-    "watch": "tsc -w",
-    "test": "watch && serve"
+    "dev": "http-server -a 0.0.0.0 -p 8080 -c-1",
+    "serve": "npm run build && http-server -a 0.0.0.0 -p 8080 -c-1",
+    "start": "npm run serve",
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch",
+    "test": "npm run build && node --test tests/*.test.mjs"
   },
   "devDependencies": {
     "http-server": "^0.11.1",

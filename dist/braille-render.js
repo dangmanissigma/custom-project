@@ -18,6 +18,8 @@ function getBrailleBits(pixels, width, x, y, targetValue) {
     let bits = 0;
     for (let index = 0; index < dotOffsets.length; index++) {
         const [offsetX, offsetY] = dotOffsets[index];
+        if (x + offsetX >= width || y + offsetY >= pixels.height)
+            continue;
         const pixelValue = pixels.data.at(rgbaOffset(x + offsetX, y + offsetY, width));
         if (typeof pixelValue === 'number' && pixelValue === targetValue) {
             bits |= 1 << (7 - index);

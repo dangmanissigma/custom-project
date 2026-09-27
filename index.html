@@ -1,136 +1,196 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta http-equiv="X-UA-Compatible" content="ie=edge">
-		<title>ASCII Image Art</title>
-	<link rel="stylesheet" href="styles.css?v=3">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="theme-color" content="#f2f4ef">
+	<meta name="description" content="A private, client-side studio for turning images into shaded ASCII, Braille, and Unicode block art.">
+	<meta property="og:title" content="ASCII Image Art Studio">
+	<meta property="og:description" content="Create shaded ASCII, Braille, and Unicode image art. Your images stay in your browser.">
+	<title>ASCII Image Art Studio</title>
+	<link rel="stylesheet" href="styles.css?v=4">
 </head>
-
 <body>
 	<div class="app-shell">
-		<header class="hero-card">
-			<div>
-					<h1>ASCII Image Art</h1>
-					<p class="subtitle">Turn images into shaded ASCII, Braille, and block-character art.</p>
-			</div>
-			<div class="hero-meta">
-				<a href="https://lach.la" target="_blank" rel="noreferrer">Lachlan</a>
-				<a href="https://github.com/dangmanissigma/custom-project" target="_blank" rel="noreferrer">GitHub</a>
+		<header class="topbar">
+			<a class="brand" href="./" aria-label="ASCII Image Art Studio home">
+				<span class="brand-mark" aria-hidden="true">A/</span>
+				<span class="brand-copy">
+					<strong>ASCII Image Art</strong>
+					<small>IMAGE TO TEXT STUDIO</small>
+				</span>
+			</a>
+			<div class="header-actions">
+				<span class="privacy-indicator"><span aria-hidden="true"></span> Local processing</span>
+				<a class="icon-link" href="https://github.com/dangmanissigma/custom-project" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+				<button class="quiet-button" id="theme-toggle" type="button" aria-label="Change color theme">Theme: system</button>
+				<button class="icon-button" id="help" type="button" aria-label="Keyboard shortcuts and help" title="Shortcuts (?)">?</button>
 			</div>
 		</header>
 
-		<main class="content-grid">
-			<section class="panel controls-panel">
-				<div class="panel-title-row">
-					<h2>Controls</h2>
-					<div class="button-row">
-						<button id="copy" class="primary-btn">Copy ASCII</button>
-						<button id="download" class="secondary-btn">Download</button>
-						<button id="reset" class="secondary-btn">Reset</button>
+		<main class="studio-layout">
+			<aside class="control-panel" aria-label="Image and rendering settings">
+				<div class="panel-heading">
+					<div>
+						<p class="eyebrow">WORKSPACE</p>
+						<h1>Make an image in type.</h1>
+					</div>
+					<div class="history-controls">
+						<button class="icon-button" id="undo" type="button" aria-label="Undo settings change" title="Undo · Ctrl/Cmd+Z" disabled>↶</button>
+						<button class="icon-button" id="redo" type="button" aria-label="Redo settings change" title="Redo · Ctrl/Cmd+Shift+Z" disabled>↷</button>
 					</div>
 				</div>
 
-				<label class="field">
-					<span>Image</span>
-					<input type="file" id="filepicker" accept=".png,.jpeg,.jpg">
-				</label>
-
-				<label class="field">
-					<span>Render Mode</span>
-					<select id="render-mode">
-						<option value="ascii">Grayscale ASCII</option>
-						<option value="braille">Braille</option>
-						<option value="halfBlock">Half Block</option>
-						<option value="shadeBlocks">Shade Blocks</option>
-					</select>
-				</label>
-
-				<label class="field" id="character-set-field">
-					<span>Character Set</span>
-					<select id="character-set">
-						<option value="classic">Classic</option>
-						<option value="detailed" selected>Detailed</option>
-						<option value="punctuation">Punctuation</option>
-						<option value="dense">Dense</option>
-						<option value="cyber">Cyber</option>
-						<option value="custom">Custom</option>
-					</select>
-				</label>
-
-				<label class="field" id="characters-field">
-					<span>Density Characters (light to dark)</span>
-					<input type="text" id="characters" value=" .'-_,~:;=!*?+%#@" spellcheck="false">
-				</label>
-
-				<label class="field slider-field">
-					<span>Character Aspect Ratio</span>
-					<input type="range" id="aspect-ratio" min="0.35" max="1" value="0.5" step="0.01">
-				</label>
-
-				<label class="field" id="dither-field">
-					<span>Dither Mode</span>
-					<select id="dither">
-						<option value="floydSteinberg">Floyd-Steinberg (simple)</option>
-						<option value="stucki">Stucki (edge contrast)</option>
-						<option value="atkinson">Atkinson (high contrast)</option>
-						<option value="ordered">Ordered (cleanest)</option>
-						<option value="threshold">Threshold (no dither)</option>
-					</select>
-				</label>
-
-				<label class="field slider-field" id="threshold-field">
-					<span>Threshold</span>
-					<input type="range" id="threshold" min="0" max="254" value="127">
-				</label>
-
-				<label class="field">
-					<span>Width</span>
-					<input type="number" id="width" value="100" step="10" min="10">
-				</label>
-
-				<label class="field checkbox-field" id="swap-dots-field">
-					<input type="checkbox" id="invert">
-					<span>Invert</span>
-				</label>
-
-				<label class="field checkbox-field">
-					<input type="checkbox" id="swap-dots">
-					<span>Swap dots & spaces</span>
-				</label>
-
-				<label class="field checkbox-field">
-					<input type="checkbox" id="compact-whitespace" checked>
-					<span>Clean whitespace</span>
-				</label>
-
-				<label class="field checkbox-field">
-					<input type="checkbox" id="mirror">
-					<span>Mirror left/right</span>
-				</label>
-
-				<label class="field">
-					<span>Preview Font Size</span>
-					<input type="number" id="font-size" value="10" min="6" max="32">
-				</label>
-
-				<p class="stats"><span id="char-count">0</span> characters</p>
-			</section>
-
-			<section class="panel preview-panel">
-				<div class="panel-title-row">
-					<h2>Preview</h2>
-					<p class="hint">Tip: larger widths are slower, so keep them moderate for snappy feedback.</p>
+				<div class="upload-controls">
+					<input class="visually-hidden" type="file" id="filepicker" accept="image/*,.bmp" aria-label="Choose an image">
+					<button class="upload-button" id="choose-file" type="button"><span aria-hidden="true">＋</span> Choose image <kbd>Ctrl O</kbd></button>
+					<div class="image-metadata" id="image-metadata" hidden>
+						<strong id="filename"></strong>
+						<div><span id="image-dimensions"></span><span id="image-size"></span><span id="image-format"></span></div>
+					</div>
 				</div>
-				<div id="output" contenteditable="true"></div>
+
+				<details class="settings-group" open>
+					<summary><span class="group-index">01</span> Rendering <span class="summary-mark" aria-hidden="true">⌄</span></summary>
+					<div class="group-body">
+						<label class="field">
+							<span>Render mode</span>
+							<select id="render-mode">
+								<option value="ascii">Grayscale ASCII</option>
+								<option value="braille">Braille</option>
+								<option value="halfBlock">Half block</option>
+								<option value="shadeBlocks">Shade blocks</option>
+							</select>
+						</label>
+						<div class="field width-field">
+							<div class="field-label"><label for="width-number">Output width</label><span class="unit">columns</span></div>
+							<div class="width-inputs"><input type="range" id="width-slider" min="8" max="220" step="1" aria-label="Output width slider"><input type="number" id="width-number" min="8" max="220" step="1" aria-label="Output width in columns"></div>
+							<div class="preset-row" aria-label="Output width presets"><button type="button" data-width="40">40</button><button type="button" data-width="60">60</button><button type="button" data-width="80">80</button><button type="button" data-width="120">120</button><button type="button" data-width="160">160</button></div>
+						</div>
+						<label class="field slider-field">
+							<span>Character aspect <span class="help-tip" title="Text characters are taller than they are wide. This correction compensates for that shape when sampling the image.">?</span></span>
+							<input type="range" id="aspect-ratio" min="0.35" max="1" value="0.5" step="0.01">
+							<small>Corrects for non-square text cells</small>
+						</label>
+						<label class="field" id="dither-field">
+							<span>Dithering <span class="help-tip" title="Dithering distributes tone errors across neighboring pixels to simulate detail with Braille dots.">?</span></span>
+							<select id="dither">
+								<option value="floydSteinberg">Floyd–Steinberg</option>
+								<option value="stucki">Stucki</option>
+								<option value="atkinson">Atkinson</option>
+								<option value="burkes">Burkes</option>
+								<option value="sierraLite">Sierra Lite</option>
+								<option value="ordered2">Bayer 2 × 2</option>
+								<option value="ordered4">Bayer 4 × 4</option>
+								<option value="ordered8">Bayer 8 × 8</option>
+								<option value="threshold">Threshold only</option>
+							</select>
+						</label>
+						<label class="field slider-field" id="threshold-field"><span>Threshold <span class="help-tip" title="Sets the cutoff between a lit and unlit Braille dot.">?</span></span><input type="range" id="threshold" min="0" max="255" value="127"><small>Dark <span>·</span> Light</small></label>
+					</div>
+				</details>
+
+				<details class="settings-group" open>
+					<summary><span class="group-index">02</span> Characters <span class="summary-mark" aria-hidden="true">⌄</span></summary>
+					<div class="group-body">
+						<label class="field" id="character-set-field"><span>Density palette <span class="help-tip" title="Characters are mapped from light to dark in the order shown.">?</span></span>
+							<select id="character-set">
+								<option value="classic">Classic</option><option value="standard">Standard</option><option value="detailed">Detailed</option><option value="dense">Dense</option><option value="minimal">Minimal</option><option value="punctuation">Punctuation</option><option value="blocks">Blocks</option><option value="retro">Retro</option><option value="cyber">Cyber</option><option value="matrix">Matrix</option><option value="terminal">Terminal</option><option value="custom">Custom</option>
+							</select>
+						</label>
+						<label class="field" id="characters-field"><span>Custom characters, light → dark</span><input type="text" id="characters" spellcheck="false" autocomplete="off" aria-describedby="palette-preview"></label>
+						<code class="palette-preview" id="palette-preview" aria-label="Palette preview"></code>
+						<label class="check-field" id="reverse-palette-field"><input type="checkbox" id="reverse-palette"><span>Reverse palette</span></label>
+						<label class="check-field"><input type="checkbox" id="invert"><span>Invert image tones</span></label>
+						<label class="check-field" id="swap-dots-field"><input type="checkbox" id="swap-dots"><span>Swap Braille dots and spaces</span></label>
+					</div>
+				</details>
+
+				<details class="settings-group">
+					<summary><span class="group-index">03</span> Image adjustments <span class="summary-mark" aria-hidden="true">⌄</span></summary>
+					<div class="group-body">
+						<label class="field slider-field"><span>Brightness</span><input type="range" id="brightness" min="-100" max="100" value="0"><small>−100 <span>·</span> +100</small></label>
+						<label class="field slider-field"><span>Contrast</span><input type="range" id="contrast" min="-100" max="100" value="0"><small>−100 <span>·</span> +100</small></label>
+						<label class="field slider-field"><span>Gamma</span><input type="range" id="gamma" min="0.2" max="3" value="1" step="0.05"><small>0.2 <span>·</span> 3.0</small></label>
+						<label class="field slider-field"><span>Exposure</span><input type="range" id="exposure" min="-2" max="2" value="0" step="0.1"><small>−2 <span>·</span> +2 EV</small></label>
+						<label class="field slider-field"><span>Black point</span><input type="range" id="black-point" min="0" max="100" value="0"></label>
+						<label class="field slider-field"><span>White point</span><input type="range" id="white-point" min="155" max="255" value="255"></label>
+						<label class="field slider-field"><span>Saturation</span><input type="range" id="saturation" min="0" max="200" value="100"><small>0 <span>·</span> 200%</small></label>
+						<label class="field slider-field"><span>Sharpen</span><input type="range" id="sharpness" min="0" max="100" value="0"><small>0 <span>·</span> 100%</small></label>
+						<label class="field slider-field"><span>Blur</span><input type="range" id="blur" min="0" max="5" value="0" step="0.1"><small>0 <span>·</span> 5 px</small></label>
+						<label class="check-field"><input type="checkbox" id="mirror"><span>Mirror image horizontally</span></label>
+					</div>
+				</details>
+
+				<details class="settings-group">
+					<summary><span class="group-index">04</span> Output <span class="summary-mark" aria-hidden="true">⌄</span></summary>
+					<div class="group-body">
+						<label class="field slider-field"><span>Font size</span><input type="range" id="font-size" min="6" max="32" value="10"><small>6 <span>·</span> 32 px</small></label>
+						<label class="field slider-field"><span>Line height</span><input type="range" id="line-height" min="0.75" max="2" value="1.1" step="0.05"></label>
+						<label class="field slider-field"><span>Character spacing</span><input type="range" id="letter-spacing" min="-0.1" max="0.2" value="0" step="0.01"></label>
+						<label class="check-field"><input type="checkbox" id="compact-whitespace"><span>Trim empty edges</span></label>
+					</div>
+				</details>
+
+				<details class="settings-group preset-group">
+					<summary><span class="group-index">05</span> Presets <span class="summary-mark" aria-hidden="true">⌄</span></summary>
+					<div class="group-body">
+						<label class="field"><span>Start from a preset</span><select id="preset-select"></select></label>
+						<div class="preset-actions"><button class="small-button" id="save-preset" type="button">Save current</button><button class="small-button" id="delete-preset" type="button">Delete saved</button></div>
+					</div>
+				</details>
+
+				<div class="panel-footer"><button class="text-button" id="reset" type="button">Reset settings</button><button class="text-button" id="reset-preferences" type="button">Reset preferences</button></div>
+			</aside>
+
+			<section class="workbench" aria-label="Image art preview">
+				<div class="workbench-header">
+					<div class="view-tabs" role="tablist" aria-label="Preview mode">
+						<button type="button" role="tab" id="tab-result" aria-controls="result-view" aria-selected="true" data-view="result">Artwork</button>
+						<button type="button" role="tab" id="tab-original" aria-controls="original-view" aria-selected="false" data-view="original">Original</button>
+						<button type="button" role="tab" id="tab-compare" aria-controls="compare-view" aria-selected="false" data-view="compare">Compare</button>
+					</div>
+					<div class="status-wrap"><span class="status-dot" aria-hidden="true"></span><span id="render-status" role="status" aria-live="polite">Ready</span></div>
+				</div>
+
+				<div class="output-toolbar">
+					<div class="output-stats" aria-label="Artwork statistics"><span><b id="columns">0</b> col</span><span><b id="rows">0</b> rows</span><span><b id="character-count">0</b> chars</span><span id="render-time">—</span></div>
+					<div class="toolbar-actions">
+						<button class="quiet-button" id="copy" type="button" aria-label="Copy artwork" title="Copy artwork · Ctrl/Cmd+C">Copy</button>
+						<details class="export-menu"><summary>Export</summary><div><button type="button" id="download-txt">Plain text (.txt)</button><button type="button" id="download-html">Styled page (.html)</button><button type="button" id="download-svg">Vector image (.svg)</button><button type="button" id="download-png">Raster image (.png)</button></div></details>
+						<span class="zoom-controls"><button class="quiet-button" id="zoom-out" type="button" aria-label="Zoom out" title="Zoom out">−</button><span id="zoom-level" aria-live="polite">100%</span><button class="quiet-button" id="zoom-in" type="button" aria-label="Zoom in" title="Zoom in">＋</button><button class="quiet-button" id="zoom-fit" type="button">Fit</button></span>
+					</div>
+				</div>
+
+				<div class="preview-stage" id="preview-stage">
+					<div class="empty-state" id="empty-state">
+						<div class="empty-art" aria-hidden="true"><span>░▒</span><strong>A</strong><span>▓█</span></div>
+						<p class="eyebrow">YOUR CANVAS IS CLEAR</p>
+						<h2>Drop an image here</h2>
+						<p class="empty-subtitle" id="empty-message">or choose a file to begin</p>
+						<div class="drop-zone" id="drop-zone" role="button" tabindex="0" aria-label="Drop an image here or press Enter to choose a file">
+							<span class="drop-icon" aria-hidden="true">↥</span><span>Drop image or <u>browse files</u></span>
+						</div>
+						<p class="supported-formats">PNG · JPEG · WebP · GIF · BMP</p>
+						<p class="privacy-note">Your image stays on this device. Nothing is uploaded.</p>
+					</div>
+					<p class="error-message" id="error-message" role="alert" hidden></p>
+					<div class="result-view" id="result-view" role="tabpanel" aria-labelledby="tab-result" hidden><pre id="output" aria-label="Generated image art"></pre></div>
+					<div class="original-view" id="original-view" role="tabpanel" aria-labelledby="tab-original" hidden><img id="source-preview" alt="Original uploaded image"></div>
+					<div class="compare-view" id="compare-view" role="tabpanel" aria-labelledby="tab-compare" hidden><div><span>ARTWORK</span><pre id="compare-output" aria-label="Generated image art comparison"></pre></div><div><span>ORIGINAL</span><img id="compare-image" alt="Original uploaded image comparison"></div></div>
+				</div>
+
+				<footer class="workbench-footer"><span>Processing stays in your browser</span><span>Ctrl/Cmd + O to open <i aria-hidden="true">·</i> ? for shortcuts</span></footer>
 			</section>
 		</main>
 	</div>
 
-	<script src="dist/index.js?v=3" type="module"></script>
+	<dialog id="shortcuts-dialog" aria-labelledby="help-title">
+		<div class="dialog-head"><div><p class="eyebrow">QUICK REFERENCE</p><h2 id="help-title">Keyboard shortcuts</h2></div><button class="icon-button" id="close-help" type="button" aria-label="Close help">×</button></div>
+		<dl class="shortcut-list"><div><dt>Open image</dt><dd><kbd>Ctrl / Cmd</kbd> + <kbd>O</kbd></dd></div><div><dt>Copy artwork</dt><dd><kbd>Ctrl / Cmd</kbd> + <kbd>C</kbd></dd></div><div><dt>Undo / redo</dt><dd><kbd>Ctrl / Cmd</kbd> + <kbd>Z</kbd> / <kbd>Shift</kbd> + <kbd>Z</kbd></dd></div><div><dt>Download text</dt><dd><kbd>Ctrl / Cmd</kbd> + <kbd>S</kbd></dd></div><div><dt>Reset settings</dt><dd><kbd>R</kbd></dd></div><div><dt>Open this panel</dt><dd><kbd>?</kbd></dd></div></dl>
+		<p class="dialog-note">Shortcuts pause while you are typing in a field.</p>
+	</dialog>
 
+	<script src="dist/index.js?v=4" type="module"></script>
 </body>
-
 </html>
